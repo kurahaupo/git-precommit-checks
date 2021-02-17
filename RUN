@@ -1,0 +1,46 @@
+#!/bin/bash
+#
+# To enable this hook, copy or link this file to ".git/hooks/pre-commit".
+#
+# - If symlinked, it will run all the checks in the original directory.
+# - If copied, it will look in .git.$PHASE.d where PHASE is the name within
+#   .git/hooks with any hyphens removed.
+#
+# Check filenames must start with a digit and end with an alphanumeric.
+
+# Normally diff against head ...
+export git_head=HEAD
+
+# ... but for an initial commit (no HEAD), diff against an empty tree object
+git rev-parse --verify "$git_head" >/dev/null 2>&1 ||
+git_head=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+
+die() { r=$1 ; shift ; printf "$@" ; exit "$r" ; } >&2
+
+self=$( command -v "$0" ) &&
+ realself=$( realpath -e "$self" ) ||
+  die 2 'Cannot locate "%s"\n' "$0"
+
+phase=${self##*/}
+
+case $realself in
+    (*/.git/hooks/*)
+        # Copied into .git/hooks;
+        # look for parts in standard location.
+        part_dir=.git.${phase//-}.d ;;
+    (*)
+        # Symlinked into .git/hooks;
+        # assume that its dirname is only for this phase.
+        part_dir=${realself%/*}
+esac
+
+if [[ -d $part_dir ]]
+then
+    for f in "$part_dir"/[0-9]*[0-9a-zA-Z]
+    do
+        [[ $f -ef $self ]] && die 2 'Recursion detected'
+        "$f" || die "$?" 'git %s check %s failed (status %s).\n' "$phase" "$f" "$?"
+    done
+else
+    printf >&2 'Missing hook parts directory %s\n' "$part_dir"
+fi
