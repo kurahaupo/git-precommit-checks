@@ -21,3 +21,5 @@ Each time you clone the parent repo, activate this by going:
 
 This will prevent the subsequent introduction of syntax errors and whitespace
 anomalies. Please ensure you have `/bin/bash` installed.
+
+The check files here are common to nearly all projects.
